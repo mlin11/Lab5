@@ -124,7 +124,7 @@ public class FastaSequence {
 			// loop
 
 		}
-		// for last line of last sequence
+		// for last sequence
 		if (!seqCount.containsKey(sequence.toString())) {
 			Integer count = 1;
 			seqCount.put(sequence.toString(), count);
