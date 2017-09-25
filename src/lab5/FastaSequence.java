@@ -9,19 +9,17 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
 public class FastaSequence
 {
 	private String header;
-	private StringBuffer sequence = new StringBuffer();
+	private String sequence;
 
 	// constructor
-	public FastaSequence(String header, StringBuffer sequence)
+	public FastaSequence(String header, String sequence)
 	{
 
 		this.header = header;
@@ -35,16 +33,14 @@ public class FastaSequence
 		List<FastaSequence> list = new ArrayList<FastaSequence>();
 		// read fasta file
 		BufferedReader reader = new BufferedReader(new FileReader(new File(filePath)));
-
 		// check if the file is a fasta file
 		// read the first line
 		String firstLine = reader.readLine();
 		String header;
-		StringBuffer sequence = new StringBuffer();
-
+		StringBuffer sequenceb = new StringBuffer();
 		if (firstLine.startsWith(">"))
 		{
-			header = firstLine.substring(1);
+			header = firstLine.substring(1).trim();
 
 		} else
 		{
@@ -52,32 +48,27 @@ public class FastaSequence
 			throw new Exception("Please make sure this is a fasta file!");
 
 		}
-
 		for (String nextLine = reader.readLine(); nextLine != null; nextLine = reader.readLine())
 		{
 			// read from the second line
 			// the program will implement else statement first
-
 			if (nextLine.startsWith(">"))
 			{
 				// whenever reaches a new header, save the previous header/sequence
-				FastaSequence pair = new FastaSequence(header, sequence);
+				FastaSequence pair = new FastaSequence(header, sequenceb.toString());
 				list.add(pair);
 				// update the header with new header
-				header = nextLine.substring(1);
+				header = nextLine.substring(1).trim();
 				// empty the sequence stringBuffer
-				sequence.setLength(0);
-
+				sequenceb.setLength(0);
 			} else
 			{
 				// save 1-many lines of sequence into the stringBuffer
-				sequence.append(nextLine.trim());
-
+				sequenceb.append(nextLine.trim());
 			}
-
 		}
 		// generate a new FastaSequence to store the last header/sequence
-		list.add(new FastaSequence(header, sequence));
+		list.add(new FastaSequence(header, sequenceb.toString()));
 		// close the reader
 		reader.close();
 		// return the list
@@ -93,69 +84,24 @@ public class FastaSequence
 
 	public static void writeUnique(File inFile, File outFile) throws Exception
 	{
-		// read input file and store into a hashMap
+		// generate a list of FastaSequence
+		List<FastaSequence> fastaList = FastaSequence.readFastaFile(inFile.toString());
+		// read the list and store unique sequences and corresponding counts in HashMap
 		HashMap<String, Integer> seqCount = new HashMap<String, Integer>();
-		// read fasta file
-		BufferedReader reader = new BufferedReader(new FileReader(inFile));
-		// check if the file is a fasta file
-		// read the first line
-		String firstLine = reader.readLine();
-
-		if (!firstLine.startsWith(">"))
+		for (FastaSequence fs : fastaList)
 		{
-			reader.close();
-			throw new Exception("Please make sure this is a fasta file!");
-
-		}
-		// define new StringBuffer to store sequence
-		StringBuffer sequence = new StringBuffer();
-
-		for (String line = reader.readLine(); line != null; line = reader.readLine())
-		{
-
-			// read from the second line-sequence line
-			if ((!line.startsWith(">")))
+			String key = fs.getSequence();
+			if (!seqCount.containsKey(key))
 			{
-				// save current line into the stringBuffer
-				sequence.append(line.trim());
+				Integer count = 1;
+				seqCount.put(key, count);
 			} else
 			{
-				// whenever reaches a header, save the previous sequence into the hashMap
-				if (!seqCount.containsKey(sequence.toString()))
-				{
-					Integer count = 1;
-					seqCount.put(sequence.toString(), count);
-
-				} else
-				{
-					Integer count = seqCount.get(sequence.toString());
-					count++;
-					seqCount.put(sequence.toString(), count);
-
-				}
-				sequence.setLength(0);
-
+				Integer count = seqCount.get(key);
+				count++;
+				seqCount.put(key, count);
 			}
-			// need figure out an efficient way to handle the last sequence inside the for
-			// loop
-
 		}
-		// for last sequence
-		if (!seqCount.containsKey(sequence.toString()))
-		{
-			Integer count = 1;
-			seqCount.put(sequence.toString(), count);
-
-		} else
-		{
-			Integer count = seqCount.get(sequence.toString());
-			count++;
-			seqCount.put(sequence.toString(), count);
-
-		}
-		// close the reader
-		reader.close();
-
 		// sort by the value of the hashMap
 		Set<Entry<String, Integer>> mySet = seqCount.entrySet();
 		// Sort method needs a list, so convert the set to a list first
@@ -173,16 +119,8 @@ public class FastaSequence
 
 		// Sort HashMap by value using new defined comparator
 		Collections.sort(myList, valueComparator);
-
-		// Maintaining insertion order with the help of LinkedHashMap
-		Map<String, Integer> sortedMap = new LinkedHashMap<String, Integer>();
-		for (Entry<String, Integer> entry : myList)
-		{
-			sortedMap.put(entry.getKey(), entry.getValue());
-		}
-
 		BufferedWriter writer = new BufferedWriter(new FileWriter(outFile));
-		for (Entry<String, Integer> entry : sortedMap.entrySet())
+		for (Entry<String, Integer> entry : myList)
 		{
 			writer.write(">" + entry.getValue() + "\n");
 			writer.write(entry.getKey() + "\n");
@@ -202,7 +140,7 @@ public class FastaSequence
 	// returns the DNA sequence of this FastaSequence
 	public String getSequence()
 	{
-		return sequence.toString();
+		return sequence;
 	}
 
 	// returns the number of G’s and C’s divided by the length of this sequence
