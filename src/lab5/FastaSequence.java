@@ -125,7 +125,8 @@ public class FastaSequence
 			writer.write(">" + entry.getValue() + "\n");
 			writer.write(entry.getKey() + "\n");
 		}
-
+		// flush the buffer
+		writer.flush();
 		// close the writer
 		writer.close();
 
